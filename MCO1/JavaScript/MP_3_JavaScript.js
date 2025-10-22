@@ -201,6 +201,24 @@ function askReturnToMenu() {
   }
 }
 
+/**
+ * Repeats a transaction until the user chooses to return to the main menu
+ * @param {Function} action - The transaction handler to execute
+ * @return {void}
+ */
+function runTransaction(action) {
+  while (true) {
+    try {
+      action();
+    } catch (err) {
+      console.log('\nError:', err.message);
+    }
+    if (askReturnToMenu()) {
+      break;
+    }
+  }
+}
+
 // --- Transaction Handlers ---
 
 /**
@@ -392,57 +410,38 @@ function handleShowInterest() {
  */
 function main() {
   console.log('\nWelcome to the Banking & Currency Exchange Application!');
-  
+
   while (true) {
     displayMainMenu();
     const choice = readline.question('\nChoose an option: ');
 
-    try {
-      let returnToMenu = false;
-      
-      while (!returnToMenu) {
-        switch (choice) {
-          case '1':
-            handleRegisterAccount();
-            returnToMenu = askReturnToMenu();
-            break;
-          case '2':
-            handleDeposit();
-            returnToMenu = askReturnToMenu();
-            break;
-          case '3':
-            handleWithdraw();
-            returnToMenu = askReturnToMenu();
-            break;
-          case '4':
-            handleCurrencyExchange();
-            returnToMenu = askReturnToMenu();
-            break;
-          case '5':
-            handleRecordExchangeRate();
-            returnToMenu = askReturnToMenu();
-            break;
-          case '6':
-            handleShowInterest();
-            returnToMenu = askReturnToMenu();
-            break;
-          case '0':
-            console.log('\n========================================');
-            console.log('Thank you for using our services!');
-            console.log('Goodbye!');
-            console.log('========================================\n');
-            return;
-          default:
-            console.log('\nInvalid option. Please try again.');
-            returnToMenu = true;
-        }
-      }
-    } catch (err) {
-      console.log('\nError:', err.message);
-      const returnToMenu = askReturnToMenu();
-      if (!returnToMenu) {
-        console.log('Returning to the same transaction...\n');
-      }
+    switch (choice) {
+      case '1':
+        runTransaction(handleRegisterAccount);
+        break;
+      case '2':
+        runTransaction(handleDeposit);
+        break;
+      case '3':
+        runTransaction(handleWithdraw);
+        break;
+      case '4':
+        runTransaction(handleCurrencyExchange);
+        break;
+      case '5':
+        runTransaction(handleRecordExchangeRate);
+        break;
+      case '6':
+        runTransaction(handleShowInterest);
+        break;
+      case '0':
+        console.log('\n========================================');
+        console.log('Thank you for using our services!');
+        console.log('Goodbye!');
+        console.log('========================================\n');
+        return;
+      default:
+        console.log('\nInvalid option. Please try again.');
     }
   }
 }

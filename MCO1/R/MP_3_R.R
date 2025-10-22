@@ -49,11 +49,10 @@ register_account <- function() {
     return()
   }
   idx <- get_account_index(name)
-# if (!is.na(idx)) {
-#   cat("Account already exists for ", accounts[[idx]]$name, ".\n", sep = "")
-#   return()
-  # }
-  # TODO: FIX above throws an error
+  if (!is.na(idx)) {
+    cat("Account already exists for ", accounts[[idx]]$name, ".\n", sep = "")
+    return()
+  }
   account <- list(name = name, balance = 0.0, currency = "PHP")
   accounts <<- c(accounts, list(account))
   cat("Account successfully created for ", name, ".\n", sep = "")

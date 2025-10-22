@@ -411,41 +411,51 @@ fn get_input(prompt: &str) -> String {
     input.trim().to_string()
 }
 
+fn ask_return_to_menu() -> bool {
+    loop {
+        let answer = get_input("\nBack to the Main Menu (Y/N): ");
+        let normalized = answer.to_uppercase();
+        match normalized.as_str() {
+            "Y" => return true,
+            "N" => return false,
+            _ => println!("Error: Invalid input. Please enter Y or N."),
+        }
+    }
+}
+
+fn run_transaction<F>(mut action: F)
+where
+    F: FnMut(),
+{
+    loop {
+        action();
+        if ask_return_to_menu() {
+            break;
+        }
+    }
+}
+
 fn main() {
     let mut system = BankingSystem::new();
-    
+
     println!("Welcome to Banking & Currency Exchange Application!");
-    
-    let mut continue_program = true;
-    while continue_program {
+
+    loop {
         system.display_main_menu();
         let option = get_input("Enter your choice: ");
-        
-        if option == "1" {
-            system.register_account();
-        } else if option == "2" {
-            system.deposit_amount();
-        } else if option == "3" {
-            system.withdraw_amount();
-        } else if option == "4" {
-            system.currency_exchange();
-        } else if option == "5" {
-            system.record_exchange_rate();
-        } else if option == "6" {
-            system.show_interest_amount();
-        } else if option == "0" {
-            println!("Thank you for using our Banking System. Goodbye!");
-            continue_program = false;
-        } else {
-            println!("Error: Invalid option. Please try again.");
-        }
-        
-        if continue_program {
-            let back_to_menu = get_input("\nBack to the Main Menu (Y/N): ");
-            if back_to_menu.to_uppercase() == "N" {
+
+        match option.as_str() {
+            "1" => run_transaction(|| system.register_account()),
+            "2" => run_transaction(|| system.deposit_amount()),
+            "3" => run_transaction(|| system.withdraw_amount()),
+            "4" => run_transaction(|| system.currency_exchange()),
+            "5" => run_transaction(|| system.record_exchange_rate()),
+            "6" => run_transaction(|| system.show_interest_amount()),
+            "0" => {
                 println!("Thank you for using our Banking System. Goodbye!");
-                continue_program = false;
+                break;
             }
+            _ => println!("Error: Invalid option. Please try again."),
         }
     }
 }

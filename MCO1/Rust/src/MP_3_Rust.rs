@@ -1,3 +1,9 @@
+// ******************
+// Last names: Campo, Hallare, Lobo, Rebollos
+// Language: Rust
+// Paradigm(s): Systems Programming, Concurrent Programming
+// ******************
+
 use std::io::{self, Write};
 
 #[derive(Clone)]

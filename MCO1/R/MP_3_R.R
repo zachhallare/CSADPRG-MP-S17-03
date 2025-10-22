@@ -1,3 +1,9 @@
+# ******************
+# Last names: Campo, Hallare, Lobo, Rebollos
+# Language: R
+# Paradigm(s): Functional Programming, Procedural Programming
+# ******************
+
 accounts <- list()
 exchange_rates <- list(PHP = 1.0, USD = 52.0, JPY = 0.4, GBP = 65.0, EUR = 57.0, CNY = 7.2)
 annual_interest_rate <- 0.05

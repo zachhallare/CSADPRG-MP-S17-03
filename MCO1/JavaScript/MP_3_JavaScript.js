@@ -1,5 +1,8 @@
-// Banking & Currency Exchange App - Improved Version
-
+// ******************
+// Last names: Campo, Hallare, Lobo, Rebollos
+// Language: JavaScript
+// Paradigm(s): Functional Programming, Object-Oriented Design
+// ******************
 const readline = require('readline-sync');
 
 // --- Data Storage ---
@@ -446,5 +449,4 @@ function main() {
   }
 }
 
-// --- Run App ---
 main();

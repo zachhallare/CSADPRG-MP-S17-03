@@ -11,8 +11,7 @@ class App {
 }
 
 fun main() {
-    var accountName = ""
-    var balance = 0.0
+    val accounts = mutableMapOf<String, Double>()
     val interestRate = 0.05
     val currencyNames = arrayOf("PHP", "USD", "JPY", "GBP", "EUR", "CNY")
     val exchangeRates = DoubleArray(6) { 1.0 }
@@ -47,12 +46,12 @@ fun main() {
             in 1..6 -> {
                 do {
                     when (choice) {
-                        1 -> accountName = registerAccount()
-                        2 -> balance = deposit(accountName, balance)
-                        3 -> balance = withdraw(accountName, balance)
+                        1 -> registerAccount(accounts)
+                        2 -> deposit(accounts)
+                        3 -> withdraw(accounts)
                         4 -> currencyExchange(exchangeRates, currencyNames)
                         5 -> recordRates(exchangeRates, currencyNames)
-                        6 -> showInterest(accountName, balance, interestRate)
+                        6 -> showInterest(accounts, interestRate)
                     }
                 } while (!askReturnToMenu())
             }
@@ -82,6 +81,15 @@ fun readDoubleInput(): Double {
     }
 }
 
+fun promptAccountName(): String {
+    print("Account Name: ")
+    return readLine()?.trim().orEmpty()
+}
+
+fun findAccountKey(accounts: Map<String, Double>, name: String): String? {
+    return accounts.keys.firstOrNull { it.equals(name, ignoreCase = true) }
+}
+
 fun askReturnToMenu(): Boolean {
     while (true) {
         print("\nBack to Main Menu (Y/N): ")
@@ -98,57 +106,75 @@ fun askReturnToMenu(): Boolean {
 
 // ---------- Main Features ----------
 
-fun registerAccount(): String {
+fun registerAccount(accounts: MutableMap<String, Double>) {
     print("Enter Account Name: ")
-    val name = readLine() ?: ""
+    val name = readLine()?.trim().orEmpty()
     if (name.isEmpty()) {
         println("Account name cannot be empty.")
-        return ""
+        return
     }
+    if (findAccountKey(accounts, name) != null) {
+        println("Account already exists: $name")
+        return
+    }
+    accounts[name] = 0.0
     println("Account Registered: $name")
-    return name
 }
 
-fun deposit(name: String, currentBalance: Double): Double {
-    if (name == "") {
-        println("No account found. Please register first.")
-        return currentBalance
+fun deposit(accounts: MutableMap<String, Double>) {
+    val name = promptAccountName()
+    if (name.isEmpty()) {
+        println("Account name cannot be empty.")
+        return
     }
-    println("Account Name: $name")
-    println("Current Balance: $currentBalance PHP")
+    val key = findAccountKey(accounts, name)
+    if (key == null) {
+        println("Account not found. Please register first.")
+        return
+    }
+    val currentBalance = accounts.getValue(key)
+    println("Account Name: $key")
+    println("Current Balance: ${"%.2f".format(currentBalance)} PHP")
     print("Enter Deposit Amount: ")
     val depositAmount = readDoubleInput()
     if (depositAmount <= 0) {
         println("Invalid deposit amount.")
-        return currentBalance
+        return
     }
     val newBalance = currentBalance + depositAmount
-    println("Updated Balance: $newBalance PHP")
-    return newBalance
+    accounts[key] = newBalance
+    println("Updated Balance: ${"%.2f".format(newBalance)} PHP")
 }
 
-fun withdraw(name: String, currentBalance: Double): Double {
-    if (name == "") {
-        println("No account found. Please register first.")
-        return currentBalance
+fun withdraw(accounts: MutableMap<String, Double>) {
+    val name = promptAccountName()
+    if (name.isEmpty()) {
+        println("Account name cannot be empty.")
+        return
     }
-    println("Account Name: $name")
-    println("Current Balance: $currentBalance PHP")
+    val key = findAccountKey(accounts, name)
+    if (key == null) {
+        println("Account not found. Please register first.")
+        return
+    }
+    val currentBalance = accounts.getValue(key)
+    println("Account Name: $key")
+    println("Current Balance: ${"%.2f".format(currentBalance)} PHP")
     print("Enter Withdraw Amount: ")
     val withdrawAmount = readDoubleInput()
 
     if (withdrawAmount <= 0) {
         println("Invalid withdrawal amount.")
-        return currentBalance
+        return
     }
     if (withdrawAmount > currentBalance) {
         println("Insufficient funds.")
-        return currentBalance
+        return
     }
 
     val newBalance = currentBalance - withdrawAmount
-    println("Updated Balance: $newBalance PHP")
-    return newBalance
+    accounts[key] = newBalance
+    println("Updated Balance: ${"%.2f".format(newBalance)} PHP")
 }
 
 fun recordRates(rates: DoubleArray, names: Array<String>) {
@@ -211,14 +237,21 @@ fun currencyExchange(rates: DoubleArray, names: Array<String>) {
     println("Exchange Amount: ${"%.2f".format(converted)} ${names[target]}")
 }
 
-fun showInterest(name: String, balance: Double, rate: Double) {
-    if (name == "") {
-        println("No account found. Please register first.")
+fun showInterest(accounts: Map<String, Double>, rate: Double) {
+    val name = promptAccountName()
+    if (name.isEmpty()) {
+        println("Account name cannot be empty.")
         return
     }
+    val key = findAccountKey(accounts, name)
+    if (key == null) {
+        println("Account not found. Please register first.")
+        return
+    }
+    val balance = accounts.getValue(key)
     println("\nShow Interest Amount")
-    println("Account Name: $name")
-    println("Current Balance: $balance PHP")
+    println("Account Name: $key")
+    println("Current Balance: ${"%.2f".format(balance)} PHP")
     println("Interest Rate: 5% per annum")
     print("Enter Number of Days: ")
     val days = readIntInput()

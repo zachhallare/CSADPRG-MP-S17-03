@@ -25,14 +25,50 @@ get_currency_from_choice <- function(choice) {
   mapping <- c("1" = "PHP", "2" = "USD", "3" = "JPY", "4" = "GBP", "5" = "EUR", "6" = "CNY")
   if (choice %in% names(mapping)) {
     mapping[[choice]]
+  } else {}
+}
+
+ensure_account_balances <- function(account) {
+  currencies <- names(exchange_rates)
+  if (is.null(account$balances)) {
+    balances <- as.list(rep(0.0, length(currencies)))
+    names(balances) <- currencies
+    base_currency <- account$currency
+    base_balance <- account$balance
+    if (!is.null(base_currency) && base_currency %in% currencies) {
+      balances[[base_currency]] <- if (!is.null(base_balance)) base_balance else 0.0
+    } else if (!is.null(base_balance)) {
+      balances[["PHP"]] <- base_balance
+    }
+    account$balances <- balances
+  } else {
+    for (currency in currencies) {
+      if (is.null(account$balances[[currency]])) {
+        account$balances[[currency]] <- 0.0
+      }
+    }
+  }
+  account$balance <- NULL
+  account$currency <- NULL
+  account
+}
+
+display_account_balances <- function(account) {
+  currencies <- names(exchange_rates)
+  cat("\nBalances for ", account$name, ":\n", sep = "")
+  for (currency in currencies) {
+    amount <- account$balances[[currency]]
+    if (is.null(amount)) {
+      amount <- 0.0
+    }
+    cat("  ", currency, ": ", formatC(amount, format = "f", digits = 2), "\n", sep = "")
   }
 }
 
 read_numeric <- function(prompt) {
   input <- readline(prompt)
   value <- suppressWarnings(as.numeric(trim_input(input)))
-  if (is.na(value)) {
-  } else {
+  if (is.na(value)) {} else {
     value
   }
 }
@@ -59,7 +95,10 @@ register_account <- function() {
     cat("Account already exists for ", accounts[[idx]]$name, ".\n", sep = "")
     return()
   }
-  account <- list(name = name, balance = 0.0, currency = "PHP")
+  currencies <- names(exchange_rates)
+  balances <- as.list(rep(0.0, length(currencies)))
+  names(balances) <- currencies
+  account <- list(name = name, balances = balances)
   accounts <<- c(accounts, list(account))
   cat("Account successfully created for ", name, ".\n", sep = "")
 }
@@ -72,17 +111,18 @@ deposit_amount <- function() {
     cat("Account not found.\n")
     return()
   }
-  account <- accounts[[idx]]
-  cat("Current Balance: ", formatC(account$balance, format = "f", digits = 2), "\n", sep = "")
-  cat("Currency: ", account$currency, "\n", sep = "")
+  account <- ensure_account_balances(accounts[[idx]])
+  accounts[[idx]] <<- account
+  php_balance <- account$balances[["PHP"]]
+  cat("Current Balance (PHP): ", formatC(php_balance, format = "f", digits = 2), "\n", sep = "")
   amount <- read_numeric("Deposit Amount: ")
   if (is.na(amount) || amount <= 0) {
     cat("Invalid amount.\n")
     return()
   }
-  account$balance <- account$balance + amount
+  account$balances[["PHP"]] <- php_balance + amount
   accounts[[idx]] <<- account
-  cat("Updated Balance: ", formatC(account$balance, format = "f", digits = 2), "\n", sep = "")
+  cat("Updated Balance (PHP): ", formatC(account$balances[["PHP"]], format = "f", digits = 2), "\n", sep = "")
 }
 
 withdraw_amount <- function() {
@@ -93,21 +133,33 @@ withdraw_amount <- function() {
     cat("Account not found.\n")
     return()
   }
-  account <- accounts[[idx]]
-  cat("Current Balance: ", formatC(account$balance, format = "f", digits = 2), "\n", sep = "")
-  cat("Currency: ", account$currency, "\n", sep = "")
+  account <- ensure_account_balances(accounts[[idx]])
+  accounts[[idx]] <<- account
+  display_account_balances(account)
+  cat("\nSelect currency to withdraw:\n")
+  display_currency_menu()
+  choice <- trim_input(readline("Currency: "))
+  currency <- get_currency_from_choice(choice)
+  if (is.na(currency)) {
+    cat("Invalid currency selection.\n")
+    return()
+  }
   amount <- read_numeric("Withdraw Amount: ")
   if (is.na(amount) || amount <= 0) {
     cat("Invalid amount.\n")
     return()
   }
-  if (amount > account$balance) {
-    cat("Insufficient funds.\n")
+  current_balance <- account$balances[[currency]]
+  if (is.null(current_balance)) {
+    current_balance <- 0.0
+  }
+  if (amount > current_balance) {
+    cat("Insufficient ", currency, " funds.\n", sep = "")
     return()
   }
-  account$balance <- account$balance - amount
+  account$balances[[currency]] <- current_balance - amount
   accounts[[idx]] <<- account
-  cat("Updated Balance: ", formatC(account$balance, format = "f", digits = 2), "\n", sep = "")
+  cat("Updated ", currency, " Balance: ", formatC(account$balances[[currency]], format = "f", digits = 2), "\n", sep = "")
 }
 
 display_currency_menu <- function() {
@@ -188,9 +240,9 @@ show_interest_amount <- function() {
     cat("Account not found.\n")
     return()
   }
-  account <- accounts[[idx]]
-  cat("Current Balance: ", formatC(account$balance, format = "f", digits = 2), "\n", sep = "")
-  cat("Currency: ", account$currency, "\n", sep = "")
+  account <- ensure_account_balances(accounts[[idx]])
+  php_balance <- account$balances[["PHP"]]
+  cat("Current Balance (PHP): ", formatC(php_balance, format = "f", digits = 2), "\n", sep = "")
   cat("Interest Rate: 5%\n")
   days_input <- trim_input(readline("Total Number of Days: "))
   days <- suppressWarnings(as.integer(days_input))
@@ -198,7 +250,7 @@ show_interest_amount <- function() {
     cat("Invalid number of days.\n")
     return()
   }
-  current_balance <- account$balance
+  current_balance <- php_balance
   cat("\n--------------------------------------------------\n")
   cat(sprintf("%-10s | %-15s | %-15s |\n", "Day", "Interest", "Balance"))
   cat("--------------------------------------------------\n")

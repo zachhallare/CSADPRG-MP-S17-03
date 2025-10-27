@@ -3,6 +3,7 @@
 // Language: JavaScript
 // Paradigm(s): Functional Programming, Object-Oriented Design
 // ******************
+
 const readline = require('readline-sync');
 
 // --- Data Storage ---
@@ -17,7 +18,6 @@ const exchangeRates = {
 };
 
 // --- Account Management ---
-
 /**
  * Registers a new bank account or returns existing account
  * @param {string} name - The account holder's name
@@ -29,7 +29,7 @@ function registerAccount(name) {
     console.log(`Account already exists for ${name}.`);
     return existingAccount;
   }
-  const account = { name, balance: 0, currency: 'PHP' };
+  const account = { name, balances: { PHP: 0 } };
   accounts.push(account);
   console.log(`\nAccount successfully created for ${name}.`);
   return account;
@@ -57,8 +57,9 @@ function deposit(accountName, amount) {
   if (amount <= 0) throw new Error('Deposit amount must be positive');
   const account = getAccount(accountName);
   if (!account) throw new Error('Account not found');
-  account.balance += amount;
-  return account.balance;
+  if (!account.balances) account.balances = { PHP: 0 };
+  account.balances.PHP = (account.balances.PHP || 0) + amount;
+  return account.balances.PHP;
 }
 
 /**
@@ -71,10 +72,30 @@ function deposit(accountName, amount) {
 function withdraw(accountName, amount) {
   const account = getAccount(accountName);
   if (!account) throw new Error('Account not found');
+  if (!account.balances) account.balances = { PHP: 0 };
   if (amount <= 0) throw new Error('Withdrawal amount must be positive');
-  if (amount > account.balance) throw new Error('Insufficient funds');
-  account.balance -= amount;
-  return account.balance;
+  const currentPhp = account.balances.PHP || 0;
+  if (amount > currentPhp) throw new Error('Insufficient funds');
+  account.balances.PHP = currentPhp - amount;
+  return account.balances.PHP;
+}
+
+/**
+ * Withdraws money from a specific currency balance
+ * @param {string} accountName
+ * @param {string} currencyCode
+ * @param {number} amount
+ * @return {number} Updated balance for that currency
+ */
+function withdrawFromCurrency(accountName, currencyCode, amount) {
+  const account = getAccount(accountName);
+  if (!account) throw new Error('Account not found');
+  if (!account.balances) account.balances = { PHP: 0 };
+  if (amount <= 0) throw new Error('Withdrawal amount must be positive');
+  const currentBalance = account.balances[currencyCode] || 0;
+  if (amount > currentBalance) throw new Error(`Insufficient ${currencyCode} funds`);
+  account.balances[currencyCode] = currentBalance - amount;
+  return account.balances[currencyCode];
 }
 
 // --- Exchange Rate Management ---
@@ -117,7 +138,6 @@ function convertCurrency(amount, fromCurrency, toCurrency) {
 }
 
 // --- Interest Computation ---
-
 /**
  * Computes daily interest based on balance and annual rate
  * @param {number} balance - The current account balance
@@ -154,7 +174,7 @@ function generateInterestProjection(balance, days, annualRate = 0.05) {
  */
 function displayMainMenu() {
   console.log('\n========================================');
-  console.log('   BANKING & CURRENCY EXCHANGE APP');
+  console.log(' BANKING & CURRENCY EXCHANGE APP');
   console.log('========================================');
   console.log('Select Transaction:');
   console.log('[1] Register Account Name');
@@ -197,28 +217,10 @@ function getCurrencyFromChoice(choice) {
  */
 function askReturnToMenu() {
   while (true) {
-    const answer = readline.question('\nBack to the Main Menu (Y/N): ').toUpperCase();
+    const answer = readline.question('\nBack to the Main Menu (Y/N):').toUpperCase();
     if (answer === 'Y') return true;
     if (answer === 'N') return false;
     console.log('Invalid input. Please enter Y or N.');
-  }
-}
-
-/**
- * Repeats a transaction until the user chooses to return to the main menu
- * @param {Function} action - The transaction handler to execute
- * @return {void}
- */
-function runTransaction(action) {
-  while (true) {
-    try {
-      action();
-    } catch (err) {
-      console.log('\nError:', err.message);
-    }
-    if (askReturnToMenu()) {
-      break;
-    }
   }
 }
 
@@ -234,7 +236,7 @@ function handleRegisterAccount() {
   if (name.trim()) {
     registerAccount(name);
   } else {
-    console.log('Invalid account name.');
+  console.log('Invalid account name.');
   }
 }
 
@@ -246,21 +248,21 @@ function handleDeposit() {
   console.log('\n--- Deposit Amount ---');
   const name = readline.question('Account Name: ');
   const account = getAccount(name);
-  
+
   if (!account) {
     console.log('Account not found.');
     return;
   }
-  
-  console.log(`Current Balance: ${account.balance.toFixed(2)}`);
-  console.log(`Currency: ${account.currency}`);
-  
+
+  const phpBalance = account.balances?.PHP || 0;
+  console.log(`Current Balance (PHP): ${phpBalance.toFixed(2)}`);
+
   const amount = parseFloat(readline.question('Deposit Amount: '));
   if (isNaN(amount)) {
     console.log('Invalid amount.');
     return;
   }
-  
+
   const newBalance = deposit(name, amount);
   console.log(`Updated Balance: ${newBalance.toFixed(2)}`);
 }
@@ -273,23 +275,43 @@ function handleWithdraw() {
   console.log('\n--- Withdraw Amount ---');
   const name = readline.question('Account Name: ');
   const account = getAccount(name);
-  
+
   if (!account) {
     console.log('Account not found.');
     return;
   }
+
+  if (!account.balances) account.balances = { PHP: 0 };
+  console.log(`\nBalances for ${account.name}:`);
+  const allCurrencies = ['PHP', 'USD', 'JPY', 'GBP', 'EUR', 'CNY'];
+  allCurrencies.forEach(code => {
+    const amount = account.balances[code] || 0;
+    console.log(` ${code}: ${amount.toFixed(2)}`);
+  });
+
+  console.log('');
   
-  console.log(`Current Balance: ${account.balance.toFixed(2)}`);
-  console.log(`Currency: ${account.currency}`);
-  
+  console.log('Select currency to withdraw:');
+  displayCurrencyMenu();
+  const curChoice = readline.question('Currency: ');
+  const currencyCode = getCurrencyFromChoice(curChoice);
+  if (!currencyCode) {
+    console.log('Invalid currency selection.');
+    return;
+  }
+
   const amount = parseFloat(readline.question('Withdraw Amount: '));
   if (isNaN(amount)) {
     console.log('Invalid amount.');
     return;
   }
-  
-  const newBalance = withdraw(name, amount);
-  console.log(`Updated Balance: ${newBalance.toFixed(2)}`);
+
+  try {
+    const newBalance = withdrawFromCurrency(name, currencyCode, amount);
+    console.log(`Updated ${currencyCode} Balance: ${newBalance.toFixed(2)}`);
+  } catch (err) {
+    console.log('Error:', err.message);
+  }
 }
 
 /**
@@ -298,41 +320,76 @@ function handleWithdraw() {
  */
 function handleCurrencyExchange() {
   let continueExchange = true;
-  
+
   while (continueExchange) {
     console.log('\n--- Foreign Currency Exchange ---');
+    const accountName = readline.question('Account Name: ');
+    const account = getAccount(accountName);
+    if (!account) {
+      console.log('Account not found.');
+      return;
+    }
+    if (!account.balances) account.balances = { PHP: 0 };
+
+    // Show current balances for context
+    console.log(`\nBalances for ${account.name}:`);
+    const allCurrencies = ['PHP', 'USD', 'JPY', 'GBP', 'EUR', 'CNY'];
+    allCurrencies.forEach(code => {
+      const amount = account.balances[code] || 0;
+      console.log(` ${code}: ${amount.toFixed(2)}`);
+    });
+
     console.log('\nSource Currency Option:');
     displayCurrencyMenu();
-    
+
     const sourceChoice = readline.question('Source Currency: ');
     const sourceCurrency = getCurrencyFromChoice(sourceChoice);
-    
+
     if (!sourceCurrency) {
       console.log('Invalid currency selection.');
       return;
     }
-    
+
     const sourceAmount = parseFloat(readline.question('Source Amount: '));
     if (isNaN(sourceAmount) || sourceAmount <= 0) {
       console.log('Invalid amount.');
       return;
     }
-    
+
     console.log('\nExchanged Currency Options:');
     displayCurrencyMenu();
-    
+
     const targetChoice = readline.question('Exchange Currency: ');
     const targetCurrency = getCurrencyFromChoice(targetChoice);
-    
+
     if (!targetCurrency) {
       console.log('Invalid currency selection.');
       return;
     }
+    if (sourceCurrency === targetCurrency) {
+      console.log('Source and target currencies are the same.');
+      return;
+    }
     
+    const availableSource = account.balances[sourceCurrency] || 0;
+    if (sourceAmount > availableSource) {
+      console.log(`Insufficient ${sourceCurrency} balance. Available: ${availableSource.toFixed(2)}`);
+      return;
+    }
+
     const exchangedAmount = convertCurrency(sourceAmount, sourceCurrency, targetCurrency);
-    console.log(`\nExchange Amount: ${exchangedAmount.toFixed(2)} ${targetCurrency}`);
     
-    const answer = readline.question('\nConvert another currency (Y/N)? ').toUpperCase();
+    account.balances[sourceCurrency] = availableSource - sourceAmount;
+    account.balances[targetCurrency] = (account.balances[targetCurrency] || 0) + exchangedAmount;
+    
+    console.log(`\nConverted ${sourceAmount.toFixed(2)} ${sourceCurrency} -> ${exchangedAmount.toFixed(2)} ${targetCurrency}`);
+    console.log('Updated balances:');
+    const srcAfter = account.balances[sourceCurrency] || 0;
+    const tgtAfter = account.balances[targetCurrency] || 0;
+    console.log(` ${sourceCurrency}: ${srcAfter.toFixed(2)}`);
+    console.log(` ${targetCurrency}: ${tgtAfter.toFixed(2)}`);
+
+    const answer = readline.question('\nConvert another currency (Y/N)?').toUpperCase();
     continueExchange = (answer === 'Y');
   }
 }
@@ -344,26 +401,26 @@ function handleCurrencyExchange() {
 function handleRecordExchangeRate() {
   console.log('\n--- Record Exchange Rate ---');
   displayCurrencyMenu();
-  
+
   const choice = readline.question('Select Foreign Currency: ');
   const currency = getCurrencyFromChoice(choice);
-  
+
   if (!currency) {
     console.log('Invalid currency selection.');
     return;
   }
-  
+
   if (currency === 'PHP') {
     console.log('PHP is the base currency and cannot be modified.');
     return;
   }
-  
-  const rate = parseFloat(readline.question(`Exchange Rate (1 ${currency} = ? PHP): `));
+
+  const rate = parseFloat(readline.question(`Exchange Rate (1 ${currency} = ? PHP):`));
   if (isNaN(rate) || rate <= 0) {
     console.log('Invalid exchange rate.');
     return;
   }
-  
+
   setExchangeRate(currency, rate);
   console.log(`\nExchange rate updated: 1 ${currency} = ${rate.toFixed(2)} PHP`);
 }
@@ -376,33 +433,56 @@ function handleShowInterest() {
   console.log('\n--- Show Interest Amount ---');
   const name = readline.question('Account Name: ');
   const account = getAccount(name);
-  
+
   if (!account) {
     console.log('Account not found.');
     return;
   }
-  
-  console.log(`Current Balance: ${account.balance.toFixed(2)}`);
-  console.log(`Currency: ${account.currency}`);
+
+  const phpBalance = account.balances?.PHP || 0;
+  console.log(`Current Balance (PHP): ${phpBalance.toFixed(2)}`);
   console.log('Interest Rate: 5%');
-  
+
   const days = parseInt(readline.question('Total Number of Days: '), 10);
   if (isNaN(days) || days <= 0) {
     console.log('Invalid number of days.');
     return;
   }
-  
-  const projections = generateInterestProjection(account.balance, days);
-  
+
+  const projections = generateInterestProjection(phpBalance, days);
+
   console.log('\n' + '-'.repeat(50));
   console.log(`${'Day'.padEnd(10)} | ${'Interest'.padEnd(15)} | ${'Balance'.padEnd(15)} |`);
   console.log('-'.repeat(50));
-  
+
   projections.forEach(p => {
     console.log(`${String(p.day).padEnd(10)} | ${p.interest.toFixed(2).padEnd(15)} | ${p.balance.toFixed(2).padEnd(15)} |`);
   });
-  
+
   console.log('-'.repeat(50));
+}
+
+// --- Account Details ---
+
+/**
+ * Displays all currency balances for an account
+ * @return {void}
+ */
+function handleViewAccountDetails() {
+  console.log('\n--- View Account Details ---');
+  const name = readline.question('Account Name: ');
+  const account = getAccount(name);
+  if (!account) {
+    console.log('Account not found.');
+    return;
+  }  
+  if (!account.balances) account.balances = { PHP: 0 };
+    console.log(`\nBalances for ${account.name}:`);
+    const allCurrencies = ['PHP', 'USD', 'JPY', 'GBP', 'EUR', 'CNY'];
+    allCurrencies.forEach(code => {
+      const amount = account.balances[code] || 0;
+      console.log(` ${code}: ${amount.toFixed(2)}`);
+    });
 }
 
 // --- Main Loop ---
@@ -417,36 +497,56 @@ function main() {
   while (true) {
     displayMainMenu();
     const choice = readline.question('\nChoose an option: ');
+    
+    try {
+      let returnToMenu = false;
 
-    switch (choice) {
-      case '1':
-        runTransaction(handleRegisterAccount);
-        break;
-      case '2':
-        runTransaction(handleDeposit);
-        break;
-      case '3':
-        runTransaction(handleWithdraw);
-        break;
-      case '4':
-        runTransaction(handleCurrencyExchange);
-        break;
-      case '5':
-        runTransaction(handleRecordExchangeRate);
-        break;
-      case '6':
-        runTransaction(handleShowInterest);
-        break;
-      case '0':
-        console.log('\n========================================');
-        console.log('Thank you for using our services!');
-        console.log('Goodbye!');
-        console.log('========================================\n');
-        return;
-      default:
-        console.log('\nInvalid option. Please try again.');
+      while (!returnToMenu) {
+        switch (choice) {
+          case '1':
+            handleRegisterAccount();
+            returnToMenu = askReturnToMenu();
+            break;
+          case '2':
+            handleDeposit();
+            returnToMenu = askReturnToMenu();
+            break;
+          case '3':
+            handleWithdraw();
+            returnToMenu = askReturnToMenu();
+            break;
+          case '4':
+            handleCurrencyExchange();
+            returnToMenu = askReturnToMenu();
+            break;
+          case '5':
+            handleRecordExchangeRate();
+            returnToMenu = askReturnToMenu();
+            break;
+          case '6':
+            handleShowInterest();
+            returnToMenu = askReturnToMenu();
+            break;
+          case '0':
+            console.log('\n========================================');
+            console.log('Thank you for using our services!');
+            console.log('Goodbye!');
+            console.log('========================================\n');
+            return;
+          default:
+            console.log('\nInvalid option. Please try again.');
+            returnToMenu = true;
+        }
+      }
+    } catch (err) {
+      console.log('\nError:', err.message);
+      const returnToMenu = askReturnToMenu();
+      if (!returnToMenu) {
+        console.log('Returning to the same transaction...\n');
+      }
     }
   }
 }
 
+// --- Run App ---
 main();

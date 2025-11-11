@@ -1,0 +1,10 @@
+C:\Users\Zach\OneDrive\Desktop\CSADPRG\Machine_Projects\CSADPRG-MP-S17-03\MCO2\Rust\target\debug\deps\prettytable-e8b125a4a100ff41.d: C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\lib.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\cell.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\format.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\row.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\utils.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\csv.rs
+
+C:\Users\Zach\OneDrive\Desktop\CSADPRG\Machine_Projects\CSADPRG-MP-S17-03\MCO2\Rust\target\debug\deps\libprettytable-e8b125a4a100ff41.rmeta: C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\lib.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\cell.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\format.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\row.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\utils.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\csv.rs
+
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\lib.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\cell.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\format.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\row.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\utils.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\prettytable-0.10.0\src\csv.rs:

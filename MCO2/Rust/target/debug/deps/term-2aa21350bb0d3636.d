@@ -1,0 +1,11 @@
+C:\Users\Zach\OneDrive\Desktop\CSADPRG\Machine_Projects\CSADPRG-MP-S17-03\MCO2\Rust\target\debug\deps\term-2aa21350bb0d3636.d: C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\lib.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\mod.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\searcher.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parser\compiled.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parser\names.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parm.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\win.rs
+
+C:\Users\Zach\OneDrive\Desktop\CSADPRG\Machine_Projects\CSADPRG-MP-S17-03\MCO2\Rust\target\debug\deps\libterm-2aa21350bb0d3636.rmeta: C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\lib.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\mod.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\searcher.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parser\compiled.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parser\names.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parm.rs C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\win.rs
+
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\lib.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\mod.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\searcher.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parser\compiled.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parser\names.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\terminfo\parm.rs:
+C:\Users\Zach\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\term-0.7.0\src\win.rs:

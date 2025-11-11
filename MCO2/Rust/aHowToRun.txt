@@ -1,0 +1,5 @@
+-- i edited the toml file, here's the right way to run it.
+-- make sure to use my toml file for the dependencies.
+
+compile/check: cargo check
+run: cargo run --bin Rust

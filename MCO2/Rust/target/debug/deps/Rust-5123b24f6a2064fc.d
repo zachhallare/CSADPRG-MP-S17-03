@@ -5,5 +5,6 @@ c:\Users\Zach\OneDrive\Desktop\CSADPRG\Machine_Projects\CSADPRG-MP-S17-03\MCO2\R
 src\MCO2_3_Rust.rs:
 Cargo.toml:
 
+# env-dep:CARGO_MANIFEST_DIR=c:\\Users\\Zach\\OneDrive\\Desktop\\CSADPRG\\Machine_Projects\\CSADPRG-MP-S17-03\\MCO2\\Rust
 # env-dep:CLIPPY_ARGS=--no-deps__CLIPPY_HACKERY__
 # env-dep:CLIPPY_CONF_DIR

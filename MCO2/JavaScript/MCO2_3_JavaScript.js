@@ -1,3 +1,9 @@
+// ============================================================================
+// Last names: Campo, Hallare, Lobo, Rebollos
+// Language: JavaScript
+// Paradigm(s): Functional Programming, Object-Oriented Design
+// ============================================================================
+
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';

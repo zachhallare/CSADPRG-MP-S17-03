@@ -1,0 +1,1 @@
+requires R packages: readr, dplyr, lubridate, jsonlite

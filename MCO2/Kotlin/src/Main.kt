@@ -147,7 +147,7 @@ fun generateReport1(parsed: List<ProjectRow>) {
         val pctDelayOver30 = data.count { it.completionDelayDays > 30 }.toDouble() / data.size * 100.0
         val efficiencyScore = if (avgDelay > 0) ((medianSavings / avgDelay) * 100).coerceIn(0.0, 100.0) else 100.0
         R1Row(key.first, key.second, totalApproved, medianSavings, avgDelay, pctDelayOver30, efficiencyScore)
-    }.sortedWith(compareBy<R1Row> { it.region }.thenByDescending { it.efficiencyScore })
+    }.sortedWith(compareByDescending<R1Row> { it.efficiencyScore }.thenBy { it.region })
 
     val csv = buildString {
         appendLine("Region,MainIsland,TotalApprovedBudget,MedianCostSavings,AvgCompletionDelayDays,PctDelayOver30,EfficiencyScore")

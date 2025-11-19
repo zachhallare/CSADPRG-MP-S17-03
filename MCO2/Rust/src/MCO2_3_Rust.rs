@@ -142,18 +142,15 @@ fn read_csv(file_path: &PathBuf) -> io::Result<Vec<RawRecord>> {
 /// Writes report data to a CSV file, including headers and escaped values.
 fn write_csv(file_path: &PathBuf, data: &[ReportRow], headers: &[&str]) -> io::Result<()> {
     ensure_dir(file_path)?;
-    let mut wtr = WriterBuilder::new().from_path(file_path)?;
+    let mut wtr = WriterBuilder::new()
+        .quote_style(csv::QuoteStyle::Necessary)
+        .from_path(file_path)?;
     wtr.write_record(headers)?;
     for row in data {
         let mut record = Vec::new();
         for header in headers {
             let value = row.get(&header.to_string()).cloned().unwrap_or_default();
-            let escaped = if value.contains(',') || value.contains('"') || value.contains('\n') {
-                format!("\"{}\"", value.replace('"', "\"\""))
-            } else {
-                value
-            };
-            record.push(escaped);
+            record.push(value);
         }
         wtr.write_record(&record)?;
     }
@@ -381,42 +378,12 @@ fn filter_by_year_range(records: Vec<ProcessedRecord>, start_year: i32, end_year
 fn format_number(value: f64, decimals: usize) -> String {
     let multiplier = 10_f64.powi(decimals as i32);
     let rounded = (value * multiplier).round() / multiplier;
-    
-    let formatted = format!("{:.1$}", rounded, decimals);
-    let parts: Vec<&str> = formatted.split('.').collect();
-    
-    let int_part = format_with_commas(parts[0]);
-    if parts.len() > 1 {
-        format!("{}.{}", int_part, parts[1])
-    } else {
-        int_part
-    }
+    format!("{:.1$}", rounded, decimals)
 }
 
-/// Formats a numeric string with comma separators for thousands.
-fn format_with_commas(num_str: &str) -> String {
-    let (sign, num) = if num_str.starts_with('-') {
-        ("-", &num_str[1..])
-    } else {
-        ("", num_str)
-    };
-
-    let chars: Vec<char> = num.chars().collect();
-    let mut result = String::new();
-    
-    for (i, ch) in chars.iter().rev().enumerate() {
-        if i > 0 && i % 3 == 0 {
-            result.insert(0, ',');
-        }
-        result.insert(0, *ch);
-    }
-
-    format!("{}{}", sign, result)
-}
-
-/// Rounds and formats large numbers (e.g., budgets) with commas, no decimals.
+/// Rounds and formats large numbers (e.g., budgets) with no decimals.
 fn format_large_number(value: f64) -> String {
-    format_number(value.round(), 0)
+    format!("{:.0}", value.round())
 }
 
 /// Calculates the median value of a slice of floats.

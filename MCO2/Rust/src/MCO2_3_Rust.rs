@@ -144,7 +144,7 @@ fn read_csv(file_path: &PathBuf) -> io::Result<Vec<RawRecord>> {
     Ok(results)
 }
 
-// Writes report data to a CSV file, including headers and escaped values.
+// Writes report data to a CSV file, including headers and values with proper types.
 fn write_csv(file_path: &PathBuf, data: &[ReportRow], headers: &[&str]) -> io::Result<()> {
     ensure_dir(file_path)?;
     let mut wtr = WriterBuilder::new().from_path(file_path)?;
@@ -153,12 +153,9 @@ fn write_csv(file_path: &PathBuf, data: &[ReportRow], headers: &[&str]) -> io::R
         let mut record = Vec::new();
         for header in headers {
             let value = row.get(&header.to_string()).cloned().unwrap_or_default();
-            let escaped = if value.contains(',') || value.contains('"') || value.contains('\n') {
-                format!("\"{}\"", value.replace('"', "\"\""))
-            } else {
-                value
-            };
-            record.push(escaped);
+            // Remove commas from formatted numbers so they can be parsed as numbers
+            let unformatted = value.replace(',', "");
+            record.push(unformatted);
         }
         wtr.write_record(&record)?;
     }

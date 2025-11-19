@@ -68,7 +68,6 @@ struct CleanedRecord {
 }
 
 // Represents a fully processed record with computed derived metrics.
-#[allow(dead_code)]
 #[derive(Clone)]
 struct ProcessedRecord {
     region: String,
@@ -101,8 +100,8 @@ struct ValidationResult {
 // UTILITY FUNCTIONS - FILE OPERATIONS
 // ============================================================================
 
-// Ensures the directory for a file path exists.
-// Creates directories if they don’t exist.
+/// Ensures the directory for a file path exists.
+/// Creates directories if they don't exist.
 fn ensure_dir(file_path: &PathBuf) -> io::Result<()> {
     if let Some(dir) = file_path.parent() {
         if !dir.exists() {
@@ -112,7 +111,7 @@ fn ensure_dir(file_path: &PathBuf) -> io::Result<()> {
     Ok(())
 }
 
-// Locates the target CSV dataset in the expected `data/` directory.
+/// Locates the target CSV dataset in the expected `data/` directory.
 fn find_csv_file() -> io::Result<PathBuf> {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let file_path = PathBuf::from(manifest_dir)
@@ -124,16 +123,12 @@ fn find_csv_file() -> io::Result<PathBuf> {
     } else {
         Err(io::Error::new(
             io::ErrorKind::NotFound,
-            format!(
-                "CSV file not found at expected location: {}\n\
-                 Make sure 'data/dpwh_flood_control_projects.csv' exists in your project root.",
-                file_path.display()
-            ),
+            format!("CSV file not found: dpwh_flood_control_projects.csv"),
         ))
     }
 }
 
-// Reads all rows from the CSV into a vector of `RawRecord` structs.
+/// Reads all rows from the CSV into a vector of `RawRecord` structs.
 fn read_csv(file_path: &PathBuf) -> io::Result<Vec<RawRecord>> {
     let mut rdr = ReaderBuilder::new().from_path(file_path)?;
     let mut results = Vec::new();
@@ -144,7 +139,7 @@ fn read_csv(file_path: &PathBuf) -> io::Result<Vec<RawRecord>> {
     Ok(results)
 }
 
-// Writes report data to a CSV file, including headers and values with proper types.
+/// Writes report data to a CSV file, including headers and escaped values.
 fn write_csv(file_path: &PathBuf, data: &[ReportRow], headers: &[&str]) -> io::Result<()> {
     ensure_dir(file_path)?;
     let mut wtr = WriterBuilder::new().from_path(file_path)?;
@@ -153,9 +148,12 @@ fn write_csv(file_path: &PathBuf, data: &[ReportRow], headers: &[&str]) -> io::R
         let mut record = Vec::new();
         for header in headers {
             let value = row.get(&header.to_string()).cloned().unwrap_or_default();
-            // Remove commas from formatted numbers so they can be parsed as numbers
-            let unformatted = value.replace(',', "");
-            record.push(unformatted);
+            let escaped = if value.contains(',') || value.contains('"') || value.contains('\n') {
+                format!("\"{}\"", value.replace('"', "\"\""))
+            } else {
+                value
+            };
+            record.push(escaped);
         }
         wtr.write_record(&record)?;
     }
@@ -163,7 +161,7 @@ fn write_csv(file_path: &PathBuf, data: &[ReportRow], headers: &[&str]) -> io::R
     Ok(())
 }
 
-// Writes JSON data (pretty-formatted) to a file.
+/// Writes JSON data (pretty-formatted) to a file.
 fn write_json(file_path: &PathBuf, data: &JsonValue) -> io::Result<()> {
     ensure_dir(file_path)?;
     let json_str = serde_json::to_string_pretty(data)?;
@@ -171,12 +169,11 @@ fn write_json(file_path: &PathBuf, data: &JsonValue) -> io::Result<()> {
     Ok(())
 }
 
-
 // ============================================================================
-// VALIDATION, TRANSFORMATION, COMPUTATION
+// UTILITY FUNCTIONS - VALIDATION
 // ============================================================================
 
-// Validates and parses date strings safely.
+/// Validates and parses date strings safely.
 fn validate_date(date_str: &str) -> Option<NaiveDate> {
     if date_str.trim().is_empty() || date_str == "N/A" {
         return None;
@@ -184,7 +181,7 @@ fn validate_date(date_str: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()
 }
 
-// Converts strings to floating-point values if valid.
+/// Converts strings to floating-point values if valid.
 fn validate_number(value: &str) -> Option<f64> {
     if value.trim().is_empty() || value == "N/A" {
         return None;
@@ -193,42 +190,49 @@ fn validate_number(value: &str) -> Option<f64> {
     cleaned.parse::<f64>().ok()
 }
 
-// Checks whether a year is within the dataset’s expected valid range.
+/// Checks whether a year is within the dataset's expected valid range.
 fn is_valid_year(year: i32) -> bool {
     year >= 2021 && year <= 2023
 }
 
-// Validates each raw record, checking required fields and data types.
+/// Validates each raw record, checking required fields and data types.
 fn validate_record(record: &RawRecord) -> ValidationResult {
     let mut errors = Vec::new();
+    
     if record.region.trim().is_empty() {
         errors.push("Missing Region".to_string());
     }
+    
     if record.main_island.trim().is_empty() {
         errors.push("Missing MainIsland".to_string());
     }
+    
     let year = record.funding_year.parse::<i32>().ok();
     if year.is_none() || !year.map_or(false, is_valid_year) {
         errors.push(format!("Invalid FundingYear: {}", record.funding_year));
     }
+    
     if record.approved_budget_for_contract.trim().is_empty() {
         errors.push("Missing ApprovedBudgetForContract".to_string());
     }
+    
     if record.contract_cost.trim().is_empty() {
         errors.push("Missing ContractCost".to_string());
     }
+    
     ValidationResult {
         is_valid: errors.is_empty(),
         errors,
     }
 }
 
-// Converts a valid RawRecord into a CleanedRecord with proper data types.
+/// Converts a valid RawRecord into a CleanedRecord with proper data types.
 fn clean_record(record: &RawRecord) -> Option<CleanedRecord> {
     let validation = validate_record(record);
     if !validation.is_valid {
         return None;
     }
+    
     let approved_budget = validate_number(&record.approved_budget_for_contract)?;
     let contract_cost = validate_number(&record.contract_cost)?;
     let start_date = validate_date(&record.start_date);
@@ -261,12 +265,16 @@ fn clean_record(record: &RawRecord) -> Option<CleanedRecord> {
     })
 }
 
-// Computes savings (budget - cost).
+// ============================================================================
+// UTILITY FUNCTIONS - TRANSFORMATION
+// ============================================================================
+
+/// Computes savings (budget - cost).
 fn calculate_cost_savings(approved_budget: f64, contract_cost: f64) -> f64 {
     approved_budget - contract_cost
 }
 
-// Computes project duration (in days) if both dates are available.
+/// Computes project duration (in days) if both dates are available.
 fn calculate_completion_delay(
     start_date: Option<NaiveDate>,
     completion_date: Option<NaiveDate>,
@@ -277,7 +285,7 @@ fn calculate_completion_delay(
     }
 }
 
-// Adds derived fields (savings, delay) to a cleaned record.
+/// Adds derived fields (savings, delay) to a cleaned record.
 fn add_derived_fields(record: CleanedRecord) -> ProcessedRecord {
     let cost_savings = calculate_cost_savings(
         record.approved_budget_for_contract,
@@ -305,7 +313,7 @@ fn add_derived_fields(record: CleanedRecord) -> ProcessedRecord {
     }
 }
 
-// Fills in missing latitude/longitude values using province averages.
+/// Fills in missing latitude/longitude values using province averages.
 fn impute_coordinates(mut records: Vec<ProcessedRecord>) -> Vec<ProcessedRecord> {
     // Group all known coordinates by province
     let mut province_coords: HashMap<String, (Vec<f64>, Vec<f64>)> = HashMap::new();
@@ -356,13 +364,8 @@ fn impute_coordinates(mut records: Vec<ProcessedRecord>) -> Vec<ProcessedRecord>
     records
 }
 
-
-// ============================================================================
-// FILTERING, FORMATTING, AND STATISTICAL UTILITIES
-// ============================================================================
-
-// Filters a vector of `ProcessedRecord`s to only include records whose
-// `funding_year` is between `start_year` and `end_year` (inclusive).
+/// Filters a vector of `ProcessedRecord`s to only include records whose
+/// `funding_year` is between `start_year` and `end_year` (inclusive).
 fn filter_by_year_range(records: Vec<ProcessedRecord>, start_year: i32, end_year: i32) -> Vec<ProcessedRecord> {
     records
         .into_iter()
@@ -370,35 +373,18 @@ fn filter_by_year_range(records: Vec<ProcessedRecord>, start_year: i32, end_year
         .collect()
 }
 
-// Formats a numeric string with comma separators for thousands.
-// Handles optional negative sign and works on integer-like strings.
-fn format_with_commas(num_str: &str) -> String {
-    // Detect sign and isolate numeric portion
-    let (sign, num) = if num_str.starts_with('-') {
-        ("-", &num_str[1..])
-    } else {
-        ("", num_str)
-    };
+// ============================================================================
+// UTILITY FUNCTIONS - COMPUTATION
+// ============================================================================
 
-    // Reverse the string for easier grouping
-    let mut result = String::new();
-    let mut chars = num.chars().rev().collect::<String>();
-    
-    // Group every 3 digits with commas
-    while chars.len() > 3 {
-        let drain = chars.drain(..3).collect::<String>();
-        result = format!("{},{}", drain.chars().rev().collect::<String>(), result);
-    }
-
-    // Reassemble the formatted string with sign
-    format!("{}{}{}", sign, chars.chars().rev().collect::<String>(), result)
-}
-
-// Formats a floating-point number with a fixed number of decimal places
-// and adds commas to the integer part for readability.
+/// Formats a floating-point number with a fixed number of decimal places.
 fn format_number(value: f64, decimals: usize) -> String {
-    let formatted = format!("{:.1$}", value, decimals);
+    let multiplier = 10_f64.powi(decimals as i32);
+    let rounded = (value * multiplier).round() / multiplier;
+    
+    let formatted = format!("{:.1$}", rounded, decimals);
     let parts: Vec<&str> = formatted.split('.').collect();
+    
     let int_part = format_with_commas(parts[0]);
     if parts.len() > 1 {
         format!("{}.{}", int_part, parts[1])
@@ -407,13 +393,33 @@ fn format_number(value: f64, decimals: usize) -> String {
     }
 }
 
-// Rounds and formats large numbers (e.g., budgets) with commas, no decimals.
+/// Formats a numeric string with comma separators for thousands.
+fn format_with_commas(num_str: &str) -> String {
+    let (sign, num) = if num_str.starts_with('-') {
+        ("-", &num_str[1..])
+    } else {
+        ("", num_str)
+    };
+
+    let chars: Vec<char> = num.chars().collect();
+    let mut result = String::new();
+    
+    for (i, ch) in chars.iter().rev().enumerate() {
+        if i > 0 && i % 3 == 0 {
+            result.insert(0, ',');
+        }
+        result.insert(0, *ch);
+    }
+
+    format!("{}{}", sign, result)
+}
+
+/// Rounds and formats large numbers (e.g., budgets) with commas, no decimals.
 fn format_large_number(value: f64) -> String {
     format_number(value.round(), 0)
 }
 
-// Calculates the median value of a slice of floats.
-// Returns 0.0 if the slice is empty.
+/// Calculates the median value of a slice of floats.
 fn calculate_median(values: &[f64]) -> f64 {
     if values.is_empty() {
         return 0.0;
@@ -428,8 +434,7 @@ fn calculate_median(values: &[f64]) -> f64 {
     }
 }
 
-// Calculates the arithmetic mean (average) of a list of floats.
-// Returns 0.0 for an empty list.
+/// Calculates the arithmetic mean (average) of a list of floats.
 fn calculate_average(values: &[f64]) -> f64 {
     if values.is_empty() {
         0.0
@@ -438,8 +443,7 @@ fn calculate_average(values: &[f64]) -> f64 {
     }
 }
 
-// Calculates the average of i64 integer values.
-// Converts result to f64 for consistency.
+/// Calculates the average of i64 integer values.
 fn calculate_average_i64(values: &[i64]) -> f64 {
     if values.is_empty() {
         0.0
@@ -448,17 +452,27 @@ fn calculate_average_i64(values: &[i64]) -> f64 {
     }
 }
 
-// Calculates a percentage safely (avoiding division by zero).
+/// Calculates a percentage safely (avoiding division by zero).
 fn calculate_percentage(part: f64, total: f64) -> f64 {
     if total == 0.0 { 0.0 } else { (part / total) * 100.0 }
 }
 
-
 // ============================================================================
-// REPORT GENERATION
+// REPORT GENERATION - REPORT 1: REGIONAL EFFICIENCY
 // ============================================================================
 
-// REPORT 1: Regional Flood Mitigation Efficiency Summary
+/// Temporary struct for Report 1 computation.
+struct Report1Temp {
+    region: String,
+    main_island: String,
+    total_budget: f64,
+    median_savings: f64,
+    avg_delay: f64,
+    high_delay_pct: f64,
+    efficiency_score: f64,
+}
+
+/// Generate Report 1: Regional Flood Mitigation Efficiency Summary
 fn generate_report1(records: &[ProcessedRecord]) -> Vec<ReportRow> {
     // Group projects by region
     let mut grouped: HashMap<String, Vec<ProcessedRecord>> = HashMap::new();
@@ -492,7 +506,15 @@ fn generate_report1(records: &[ProcessedRecord]) -> Vec<ReportRow> {
             ((median_savings / avg_delay) * 100.0).clamp(0.0, 100.0)
         } else { 0.0 };
 
-        temp.push(Report1Temp { region, main_island, total_budget, median_savings, avg_delay, high_delay_pct, efficiency_score });
+        temp.push(Report1Temp { 
+            region, 
+            main_island, 
+            total_budget, 
+            median_savings, 
+            avg_delay, 
+            high_delay_pct, 
+            efficiency_score 
+        });
     }
 
     // Sort descending by efficiency score (best region first)
@@ -512,18 +534,22 @@ fn generate_report1(records: &[ProcessedRecord]) -> Vec<ReportRow> {
     }).collect()
 }
 
-// Temporary struct for Report 1 computation.
-struct Report1Temp {
-    region: String,
-    main_island: String,
-    total_budget: f64,
-    median_savings: f64,
+// ============================================================================
+// REPORT GENERATION - REPORT 2: CONTRACTOR RANKING
+// ============================================================================
+
+/// Temporary struct for Report 2 computation.
+struct Report2Temp {
+    contractor: String,
+    total_cost: f64,
+    num_projects: usize,
     avg_delay: f64,
-    high_delay_pct: f64,
-    efficiency_score: f64,
+    total_savings: f64,
+    reliability_index: f64,
+    risk_flag: String,
 }
 
-// REPORT 2: Top Contractors Performance Ranking
+/// Generate Report 2: Top Contractors Performance Ranking
 fn generate_report2(records: &[ProcessedRecord]) -> Vec<ReportRow> {
     let mut grouped: HashMap<String, Vec<ProcessedRecord>> = HashMap::new();
     for r in records {
@@ -547,7 +573,15 @@ fn generate_report2(records: &[ProcessedRecord]) -> Vec<ReportRow> {
         // Assign qualitative risk label
         let risk_flag = if reliability_index < 50.0 { "High Risk" } else { "Low Risk" }.to_string();
 
-        stats.push(Report2Temp { contractor, total_cost, num_projects: recs.len(), avg_delay, total_savings, reliability_index, risk_flag });
+        stats.push(Report2Temp { 
+            contractor, 
+            total_cost, 
+            num_projects: recs.len(), 
+            avg_delay, 
+            total_savings, 
+            reliability_index, 
+            risk_flag 
+        });
     }
 
     // Sort by total cost (largest first) and limit to top 15
@@ -569,19 +603,21 @@ fn generate_report2(records: &[ProcessedRecord]) -> Vec<ReportRow> {
     }).collect()
 }
 
-// Temporary struct for Report 2 computation.
-struct Report2Temp {
-    contractor: String,
-    total_cost: f64,
-    num_projects: usize,
-    avg_delay: f64,
-    total_savings: f64,
-    reliability_index: f64,
-    risk_flag: String,
+// ============================================================================
+// REPORT GENERATION - REPORT 3: COST OVERRUN TRENDS
+// ============================================================================
+
+/// Temporary struct for Report 3 computation.
+struct Report3Temp {
+    funding_year: i32,
+    type_of_work: String,
+    total_projects: usize,
+    avg_savings: f64,
+    overrun_rate: f64,
+    yoy_change: f64,
 }
 
-
-// REPORT 3: Annual Project Type Cost Overrun Trends
+/// Generate Report 3: Annual Project Type Cost Overrun Trends
 fn generate_report3(records: &[ProcessedRecord]) -> Vec<ReportRow> {
     // Group projects by year + type
     let mut grouped: HashMap<String, Vec<ProcessedRecord>> = HashMap::new();
@@ -607,7 +643,14 @@ fn generate_report3(records: &[ProcessedRecord]) -> Vec<ReportRow> {
         } else { 0.0 };
 
         year_type_data.entry(type_of_work.clone()).or_insert_with(HashMap::new).insert(year, avg_savings);
-        temp.push(Report3Temp { funding_year: year, type_of_work, total_projects: recs.len(), avg_savings, overrun_rate, yoy_change: 0.0 });
+        temp.push(Report3Temp { 
+            funding_year: year, 
+            type_of_work, 
+            total_projects: recs.len(), 
+            avg_savings, 
+            overrun_rate, 
+            yoy_change: 0.0 
+        });
     }
 
     // Compute YoY changes relative to 2021
@@ -643,20 +686,13 @@ fn generate_report3(records: &[ProcessedRecord]) -> Vec<ReportRow> {
     }).collect()
 }
 
-// Temporary struct for Report 3 computation.
-struct Report3Temp {
-    funding_year: i32,
-    type_of_work: String,
-    total_projects: usize,
-    avg_savings: f64,
-    overrun_rate: f64,
-    yoy_change: f64,
-}
+// ============================================================================
+// SUMMARY GENERATION
+// ============================================================================
 
-
-// JSON Summary
+/// Generate summary JSON with aggregate statistics
 fn generate_summary(records: &[ProcessedRecord]) -> JsonValue {
-    // Collect unique contractors, excluding empty and “Unknown” entries.
+    // Collect unique contractors, excluding empty and "Unknown" entries.
     let unique_contractors: HashSet<String> = records
         .iter()
         .map(|r| r.contractor.clone())
@@ -674,7 +710,7 @@ fn generate_summary(records: &[ProcessedRecord]) -> JsonValue {
     let delays: Vec<i64> = records.iter().filter_map(|r| r.completion_delay_days).collect();
     let total_savings: f64 = records.iter().map(|r| r.cost_savings).sum();
 
-    // Construct a JSON summary using serde_json’s `json!` macro.
+    // Construct a JSON summary using serde_json's `json!` macro.
     json!({
         "total_projects": records.len(),
         "total_contractors": unique_contractors.len(),
@@ -684,10 +720,21 @@ fn generate_summary(records: &[ProcessedRecord]) -> JsonValue {
     })
 }
 
+/// Write summary to JSON file
+fn write_summary(summary_data: &JsonValue) -> io::Result<PathBuf> {
+    let current_dir = env::current_dir()?;
+    let output_dir = current_dir.join("output");
+    let file_path = output_dir.join("summary.json");
+    write_json(&file_path, summary_data)?;
+    println!("Summary written to: {}", file_path.display());
+    Ok(file_path)
+}
+
 // ============================================================================
 // PRETTY REPORT WRITER WITH PREVIEW
 // ============================================================================
 
+/// Generic function to write report to CSV with preview
 fn write_report(
     filename: &str,
     data: &[ReportRow],
@@ -740,21 +787,21 @@ fn write_report(
     Ok(file_path)
 }
 
-// Writes summary.json file containing global statistics.
-fn write_summary(summary_data: &JsonValue) -> io::Result<PathBuf> {
-    let current_dir = env::current_dir()?;
-    let output_dir = current_dir.join("output");
-    let file_path = output_dir.join("summary.json");
-    write_json(&file_path, summary_data)?;
-    println!("Summary written to: {}", file_path.display());
-    Ok(file_path)
+// ============================================================================
+// MAIN APPLICATION LOGIC
+// ============================================================================
+
+/// Prompt user for input
+fn ask_question(prompt: &str) -> io::Result<String> {
+    print!("{}", prompt);
+    io::stdout().flush()?;
+    let stdin = io::stdin();
+    let mut input = String::new();
+    stdin.lock().read_line(&mut input)?;
+    Ok(input.trim().to_string())
 }
 
-
-// ============================================================================
-// MAIN LOGIC
-// ============================================================================
-
+/// Load and process the CSV file
 fn load_file(
     raw_records: &mut Option<Vec<RawRecord>>,
     processed_data: &mut Option<Vec<ProcessedRecord>>,
@@ -809,7 +856,7 @@ fn load_file(
     Ok(())
 }
 
-// Handles generation of all three main reports and the JSON summary.
+/// Generate all reports
 fn generate_reports(processed_data: &Option<Vec<ProcessedRecord>>) -> io::Result<()> {
     // Ensure data is loaded before generating reports.
     let Some(data) = processed_data else {
@@ -866,38 +913,35 @@ fn generate_reports(processed_data: &Option<Vec<ProcessedRecord>>) -> io::Result
     Ok(())
 }
 
-// Displays the main CLI menu options to the user.
+/// Display main menu
 fn display_menu() {
     println!("Select Language Implementation:");
     println!("[1] Load the file");
     println!("[2] Generate Reports\n");
-    print!("Enter choice: ");  
-    io::stdout().flush().unwrap();
 }
-
 
 // ============================================================================
 // ENTRY POINT
 // ============================================================================
 
 fn main() -> io::Result<()> {
+    println!("DATA ANALYSIS PIPELINE FOR FLOOD CONTROL PROJECTS\n");
+    println!("Version 2: Comprehensive Single-File Implementation\n");
+    
     // Option-wrapped storage for raw and processed datasets.
     let mut raw_records: Option<Vec<RawRecord>> = None;
     let mut processed_data: Option<Vec<ProcessedRecord>> = None;
     
-    // Prepare input stream and menu loop flag.
-    let stdin = io::stdin();
+    // Prepare menu loop flag.
     let mut running = true;
 
     // Repeatedly show menu until user decides to quit.
     while running {
         display_menu();
-        let mut input = String::new();
-        stdin.lock().read_line(&mut input)?;
-        let choice = input.trim();
-        println!("");
+        let choice = ask_question("Enter choice: ")?;
+        println!();
 
-        match choice {
+        match choice.as_str() {
             // Option 1: Load and clean dataset.
             "1" => {
                 load_file(&mut raw_records, &mut processed_data)?;
@@ -906,12 +950,9 @@ fn main() -> io::Result<()> {
             // Option 2: Generate reports using loaded data.
             "2" => {
                 generate_reports(&processed_data)?;
-                print!("Back to Report Selection (Y/N): ");
-                io::stdout().flush()?;
-                let mut cont = String::new();
-                stdin.lock().read_line(&mut cont)?;
-                running = cont.trim().to_uppercase() == "Y";
-                println!("");
+                let cont = ask_question("Back to Report Selection (Y/N): ")?;
+                running = cont.to_uppercase() == "Y";
+                println!();
             }
 
             // Invalid menu choice handling.
@@ -924,5 +965,3 @@ fn main() -> io::Result<()> {
     println!("Goodbye!");
     Ok(())
 }
-
-

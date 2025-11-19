@@ -1,3 +1,8 @@
+// ********************
+// Last names: Campo, Hallare, Lobo, Rebollos
+// Language: JavaScript
+// Paradigm(s): Functional Programming, Imperative Programming
+// ********************
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';

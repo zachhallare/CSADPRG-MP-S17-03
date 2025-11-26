@@ -484,8 +484,8 @@ fn generate_report1(records: &[ProcessedRecord]) -> Vec<ReportRow> {
         });
     }
 
-    // Sort descending by efficiency score (best region first)
-    temp.sort_by(|a, b| b.efficiency_score.partial_cmp(&a.efficiency_score).unwrap());
+    // Sort ascending by region name
+    temp.sort_by(|a, b| a.region.cmp(&b.region));
 
     // Convert to CSV-friendly format
     temp.into_iter().map(|r| {
@@ -551,8 +551,8 @@ fn generate_report2(records: &[ProcessedRecord]) -> Vec<ReportRow> {
         });
     }
 
-    // Sort by total cost (largest first) and limit to top 15
-    stats.sort_by(|a, b| b.total_cost.partial_cmp(&a.total_cost).unwrap());
+    // Sort by total_cost descending (largest first) and keep only top 15
+    stats.sort_by(|a, b| b.total_cost.partial_cmp(&a.total_cost).unwrap_or(std::cmp::Ordering::Equal));
     stats.truncate(15);
 
     // Convert to CSV rows
@@ -631,12 +631,15 @@ fn generate_report3(records: &[ProcessedRecord]) -> Vec<ReportRow> {
         }
     }
 
-    // Sort by year then by average savings descending
+    // Sort: oldest year first, then highest avg_savings first (within same year)
     temp.sort_by(|a, b| {
-        if a.funding_year != b.funding_year {
-            a.funding_year.cmp(&b.funding_year)
-        } else {
-            b.avg_savings.partial_cmp(&a.avg_savings).unwrap()
+        match a.funding_year.cmp(&b.funding_year) {
+            std::cmp::Ordering::Equal => {
+                // Within the same year: highest avg_savings first
+                b.avg_savings.partial_cmp(&a.avg_savings)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            }
+            ordering => ordering,
         }
     });
 
@@ -679,10 +682,10 @@ fn generate_summary(records: &[ProcessedRecord]) -> JsonValue {
 
     // Construct a JSON summary using serde_json's `json!` macro.
     json!({
-        "total_projects": records.len(),
-        "total_contractors": unique_contractors.len(),
-        "total_provinces": unique_provinces.len(),
         "global_avg_delay": ((calculate_average_i64(&delays) * 10.0).round() / 10.0),
+        "total_contractors": unique_contractors.len(),
+        "total_projects": records.len(),
+        "total_provinces": unique_provinces.len(),
         "total_savings": total_savings.round()
     })
 }
